@@ -2,7 +2,7 @@
   "generatedAt": "2026-03-31",
   "generatedFrom": "agentdecompile_import_symbols",
   "confidence": "high_for_import_correspondence",
-  "note": "Internal function recovery remains incomplete in the current Ghidra database, but this mapping now includes shared imported call targets, mirrored structural anchors, and the first recovered internal startup anchors from both binaries.",
+  "note": "This mapping includes shared imported call targets, mirrored structural anchors, and the recovered startup anchors from both local Ghidra programs. K1 now uses the provided /K1_swkotor GZF-backed database, where the PE entry is classified as a dynamic loader/unpacker stub rather than a conventional static startup body, while TSL retains a fully statically recoverable startup chain under /TSL_swkotor2.",
   "sectionAnchors": [
     {
       "name": "image_base",
@@ -75,7 +75,7 @@
       "tsl": "0x0091d5a2",
       "confidence": "medium",
       "status": "recovered",
-      "note": "Both addresses are header-declared PE entry anchors recovered by explicit disassembly and function creation. K1 is a loader-like startup function; TSL is a short entry thunk that jumps into 0x0091d424."
+      "note": "Both addresses are header-declared PE entry anchors recovered by explicit disassembly and function creation. K1 is a .bind-resident loader/unpacker stub that resolves APIs, maps an embedded PE image, and enters its export named start; TSL is a short entry thunk that dispatches into 0x0091d424."
     },
     {
       "name": "tsl_startup_body",
@@ -84,7 +84,70 @@
       "tsl": "0x0091d424",
       "confidence": "high",
       "status": "recovered_tsl_only",
-      "note": "Recovered TSL startup body reached from the TSL PE entry thunk. Equivalent K1 startup body has not yet been isolated from the larger 0x0086d2ed loader path."
+      "note": "Recovered TSL startup body reached from the TSL PE entry thunk. There is no fixed static K1 startup body on the corresponding recovered path because K1 transfers control into a runtime-mapped second-stage image."
+    },
+    {
+      "name": "k1_startup_01",
+      "group": "startup",
+      "k1": "0x0086d266",
+      "tsl": null,
+      "confidence": "high",
+      "status": "classified_k1_only",
+      "note": "Recovered K1 startup helper called directly from K1_PEEntryPoint. Classified as a CRC-like routine using polynomial 0x488781ed."
+    },
+    {
+      "name": "k1_startup_02",
+      "group": "startup",
+      "k1": "0x0086d005",
+      "tsl": null,
+      "confidence": "high",
+      "status": "classified_k1_only",
+      "note": "Recovered K1 startup helper called directly from K1_PEEntryPoint. Classified as a PE export-table resolver used to find the runtime-mapped payload export named start; no direct TSL startup equivalent has been isolated."
+    },
+    {
+      "name": "k1_startup_03",
+      "group": "startup",
+      "k1": "0x0086d201",
+      "tsl": null,
+      "confidence": "high",
+      "status": "classified_k1_only",
+      "note": "Recovered K1 startup helper called directly from K1_PEEntryPoint. Classified as a fixed-width integer-to-decimal formatter used by the Application load error path; no direct TSL startup equivalent has been isolated."
+    },
+    {
+      "name": "tsl_startup_13",
+      "group": "startup",
+      "k1": null,
+      "tsl": "0x00407920",
+      "confidence": "medium",
+      "status": "recovered_tsl_only",
+      "note": "Recovered TSL startup loader invoked directly from TSL_PEEntryPoint and responsible for substantial subsystem initialization. Same VA in K1 is not a clean equivalent."
+    },
+    {
+      "name": "tsl_startup_17",
+      "group": "startup",
+      "k1": null,
+      "tsl": "0x0092b087",
+      "confidence": "high",
+      "status": "recovered_tsl_only",
+      "note": "Recovered TSL startup helper that initializes the security cookie using time, process, thread, tick, and performance counter entropy."
+    },
+    {
+      "name": "tsl_bootstrap_04",
+      "group": "startup_windowing",
+      "k1": null,
+      "tsl": "0x004087a0",
+      "confidence": "high",
+      "status": "recovered_tsl_only",
+      "note": "Recovered TSL bootstrap function for RegisterClassA/CreateWindowExA main-window setup. Same VA in K1 is not a clean equivalent."
+    },
+    {
+      "name": "tsl_bootstrap_06",
+      "group": "startup_windowing",
+      "k1": null,
+      "tsl": "0x00409750",
+      "confidence": "high",
+      "status": "recovered_tsl_only",
+      "note": "Recovered TSL bootstrap function for display/window reset handling. Same VA in K1 is not a clean equivalent."
     }
   ],
   "imports": {

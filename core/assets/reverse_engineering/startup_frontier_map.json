@@ -1,0 +1,1223 @@
+{
+  "generatedAt": "2026-03-31",
+  "source": "agentdecompile_manual_entry_recovery",
+  "note": "Startup frontier graph: PE-entry level-1 functions recovered via PE header parsing and FlatProgramAPI.createFunction, plus all level-2 callees of TSL_Startup_13 (the main game loop / startup loader). K1 now points at the provided GZF-backed database under /K1_swkotor. The K1 PE entry and recovered helpers still live in .bind, but the entry stub is now classified more precisely: it decodes an obfuscated API table, manually maps and relocates an embedded PE payload in memory, resolves the payload export named start, and transfers control indirectly through that runtime-mapped image rather than to any fixed static K1 startup body. TSL continues to have a full statically recoverable startup chain under /TSL_swkotor2.",
+  "graphs": [
+    {
+      "version": "K1",
+      "notes": [
+        "K1 /K1_swkotor now uses the provided GZF-backed project data rather than the earlier zero-filled placeholder view.",
+        "K1_PEEntryPoint at 0x0086d2ed is a loader/unpacker-style .bind stub with a recovered static range of 0x0086d2ed-0x0086f202 (7958 bytes).",
+        "K1_Startup_02 at 0x0086d005 is a PE export-table resolver and K1_Startup_03 at 0x0086d201 is a 10-digit integer-to-decimal formatter.",
+        "The decoded loader table includes kernel32/user32/shell32 APIs such as VirtualAlloc, VirtualProtect, GetProcAddress, MapViewOfFile, and ShellExecuteA, plus Steam bootstrap strings like Local\\SteamStart_SharedMemFile, Local\\SteamStart_SharedMemLock, steam.exe, and -applaunch .",
+        "No direct static jump or call out of .bind to a recoverable K1 runtime startup body was identified because the true second stage is unpacked and invoked dynamically from memory."
+      ],
+      "nodes": [
+        {
+          "id": "K1_PEEntryPoint",
+          "address": "0x0086d2ed",
+          "role": "pe_entry_loader_stub",
+          "size": 7958,
+          "status": "classified",
+          "notes": [
+            "Recovered from PE AddressOfEntryPoint RVA 0x46d2ed plus ImageBase 0x400000.",
+            "Large .bind-resident loader stub that decrypts an obfuscated API and metadata table from 0x0086f204.",
+            "Resolves loader APIs from kernel32.dll, user32.dll, and shell32.dll, then decrypts an embedded MZ/PE payload, maps it with VirtualAlloc, applies relocations/import fixes, and sets section protections.",
+            "Uses K1_Startup_02 to resolve the mapped payload export named start and transfers control indirectly through the runtime-mapped second stage rather than to any fixed static K1 runtime body.",
+            "Failure and bootstrap handling references php9b0e.tmp, Local\\SteamStart_SharedMemFile, Local\\SteamStart_SharedMemLock, steam.exe, Steam Error, and Application load error X:XXXXXXXXXX."
+          ]
+        },
+        {
+          "id": "K1_Startup_01",
+          "address": "0x0086d266",
+          "role": "crc_helper",
+          "size": 117,
+          "status": "classified",
+          "notes": [
+            "CRC-like helper using polynomial 0x488781ed.",
+            "Called directly from K1_PEEntryPoint."
+          ]
+        },
+        {
+          "id": "K1_Startup_02",
+          "address": "0x0086d005",
+          "role": "pe_export_resolver",
+          "size": 503,
+          "status": "classified",
+          "notes": [
+            "Validates a PE image, walks its export directory, performs case-insensitive name matching, and returns the resolved export address.",
+            "Used by the K1 loader stub to resolve both Win32 API entry points and the runtime-mapped payload export named start."
+          ]
+        },
+        {
+          "id": "K1_Startup_03",
+          "address": "0x0086d201",
+          "role": "int_to_decimal_ascii",
+          "size": 101,
+          "status": "classified",
+          "notes": [
+            "Formats a 32-bit integer into a fixed-width 10-character ASCII decimal string plus terminator.",
+            "Used to fill the Application load error X:XXXXXXXXXX message template in the K1 loader error path."
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "K1_PEEntryPoint",
+          "to": "K1_Startup_01",
+          "kind": "call"
+        },
+        {
+          "from": "K1_PEEntryPoint",
+          "to": "K1_Startup_02",
+          "kind": "call"
+        },
+        {
+          "from": "K1_PEEntryPoint",
+          "to": "K1_Startup_03",
+          "kind": "call"
+        }
+      ]
+    },
+    {
+      "version": "TSL",
+      "notes": [
+        "TSL /TSL_swkotor2 has full statically recoverable startup code in .text.",
+        "Level-1 covers the PE entry, startup body, 17 startup helpers, and the window/display bootstrap helpers.",
+        "Level-2 covers all 58 direct internal callees of TSL_Startup_13, the main game loop / startup loader.",
+        "TSL_Bootstrap_02 and TSL_Bootstrap_03 are TSL Aspyr/GOG specific Steam integration helpers."
+      ],
+      "nodes": [
+        {
+          "id": "TSL_PEEntryPoint",
+          "address": "0x0091d5a2",
+          "role": "pe_entry",
+          "size": 320,
+          "status": "recovered",
+          "notes": [
+            "Recovered from the PE AddressOfEntryPoint.",
+            "Short entry thunk into TSL_StartupBody at 0x0091d424."
+          ]
+        },
+        {
+          "id": "TSL_StartupBody",
+          "address": "0x0091d424",
+          "role": "startup_body",
+          "size": null,
+          "status": "recovered",
+          "notes": [
+            "Validates PE headers at runtime and dispatches into TSL_Startup_13."
+          ]
+        },
+        {
+          "id": "TSL_Startup_01",
+          "address": "0x00924dcc",
+          "role": "startup_helper",
+          "size": 69,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_02",
+          "address": "0x009270e0",
+          "role": "startup_helper",
+          "size": 48,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_03",
+          "address": "0x0091d3fb",
+          "role": "startup_helper",
+          "size": 41,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_04",
+          "address": "0x00924b53",
+          "role": "startup_helper",
+          "size": 397,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_05",
+          "address": "0x0092a3b0",
+          "role": "startup_helper",
+          "size": 38,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_06",
+          "address": "0x00925fde",
+          "role": "startup_helper",
+          "size": 582,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_07",
+          "address": "0x0091cbfa",
+          "role": "startup_helper",
+          "size": 41,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_08",
+          "address": "0x0092af50",
+          "role": "startup_helper",
+          "size": 311,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_09",
+          "address": "0x0092ae95",
+          "role": "startup_helper",
+          "size": 187,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_10",
+          "address": "0x0092ac1d",
+          "role": "startup_helper",
+          "size": 222,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_11",
+          "address": "0x0091ccb9",
+          "role": "startup_helper",
+          "size": 133,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_12",
+          "address": "0x0092abbe",
+          "role": "startup_helper",
+          "size": 95,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_13",
+          "address": "0x00407920",
+          "role": "startup_loader_game_loop",
+          "size": 3611,
+          "status": "classified",
+          "notes": [
+            "Main game loop and startup orchestrator with 58 direct internal callees.",
+            "Creates the single-instance mutex, initializes COM, creates the primary window, drives Steam callbacks, and swaps the OpenGL frame."
+          ]
+        },
+        {
+          "id": "TSL_Startup_14",
+          "address": "0x0091ce6a",
+          "role": "startup_helper",
+          "size": 22,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_15",
+          "address": "0x0091ce96",
+          "role": "startup_helper",
+          "size": 15,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_16",
+          "address": "0x00924e11",
+          "role": "startup_helper",
+          "size": 20,
+          "status": "recovered",
+          "notes": []
+        },
+        {
+          "id": "TSL_Startup_17",
+          "address": "0x0092b087",
+          "role": "startup_helper",
+          "size": 150,
+          "status": "classified",
+          "notes": [
+            "Security-cookie initialization using process, thread, and time entropy."
+          ]
+        },
+        {
+          "id": "TSL_Bootstrap_04",
+          "address": "0x004087a0",
+          "role": "window_create",
+          "size": 839,
+          "status": "classified",
+          "notes": [
+            "Registers the main window class and creates the primary window."
+          ]
+        },
+        {
+          "id": "TSL_Bootstrap_06",
+          "address": "0x00409750",
+          "role": "display_reset",
+          "size": 1711,
+          "status": "classified",
+          "notes": [
+            "Resets display state and participates in window/display reinitialization."
+          ]
+        },
+        {
+          "id": "TSL_L2_001",
+          "address": "0x00401730",
+          "role": "object_constructor",
+          "size": 385,
+          "status": "classified",
+          "notes": [
+            "Constructs a multi-field game context object."
+          ]
+        },
+        {
+          "id": "TSL_L2_002",
+          "address": "0x00401970",
+          "role": "object_destructor",
+          "size": 346,
+          "status": "classified",
+          "notes": [
+            "Destroys the game context object and frees owned sub-pointers."
+          ]
+        },
+        {
+          "id": "TSL_L2_003",
+          "address": "0x00401c70",
+          "role": "game_shutdown_step",
+          "size": 125,
+          "status": "classified",
+          "notes": [
+            "Performs one shutdown step in the game runtime."
+          ]
+        },
+        {
+          "id": "TSL_L2_004",
+          "address": "0x00402510",
+          "role": "early_init",
+          "size": 45,
+          "status": "classified",
+          "notes": [
+            "Zeros global counters and performs early initialization before mutex setup."
+          ]
+        },
+        {
+          "id": "TSL_Bootstrap_01",
+          "address": "0x004072b0",
+          "role": "dynamic_dll_loader",
+          "size": 61,
+          "status": "classified",
+          "notes": [
+            "Loads a DLL, resolves one export, calls it, and unloads the DLL."
+          ]
+        },
+        {
+          "id": "TSL_Bootstrap_02",
+          "address": "0x004072f0",
+          "role": "steam_init_check",
+          "size": 143,
+          "status": "classified",
+          "notes": [
+            "Calls SteamAPI_Init, verifies ownership through SteamApps, and reports failure via MessageBoxA."
+          ]
+        },
+        {
+          "id": "TSL_Bootstrap_03",
+          "address": "0x004076f0",
+          "role": "steam_workshop_mods",
+          "size": 165,
+          "status": "classified",
+          "notes": [
+            "Enumerates subscribed Steam Workshop items and dispatches them for mod loading."
+          ]
+        },
+        {
+          "id": "TSL_Bootstrap_05",
+          "address": "0x00408c30",
+          "role": "display_video_init",
+          "size": 462,
+          "status": "recovered",
+          "notes": [
+            "Initializes display and video state after the primary window is created."
+          ]
+        },
+        {
+          "id": "TSL_L2_008",
+          "address": "0x00408740",
+          "role": "gl_clear",
+          "size": 90,
+          "status": "classified",
+          "notes": [
+            "Calls glClear with a mask derived from color, depth, and stencil bits."
+          ]
+        },
+        {
+          "id": "TSL_L2_012",
+          "address": "0x0040c090",
+          "role": "screensaver_disable",
+          "size": 80,
+          "status": "classified",
+          "notes": [
+            "Disables the screensaver and stores the prior timeout state."
+          ]
+        },
+        {
+          "id": "TSL_L2_013",
+          "address": "0x0040c0e0",
+          "role": "screensaver_restore",
+          "size": 32,
+          "status": "classified",
+          "notes": [
+            "Restores the saved screensaver state on shutdown."
+          ]
+        },
+        {
+          "id": "TSL_L2_014",
+          "address": "0x0040c100",
+          "role": "lowpower_disable",
+          "size": 80,
+          "status": "classified",
+          "notes": [
+            "Disables low-power mode and stores the prior timeout state."
+          ]
+        },
+        {
+          "id": "TSL_L2_015",
+          "address": "0x0040c150",
+          "role": "lowpower_restore",
+          "size": 32,
+          "status": "classified",
+          "notes": [
+            "Restores the saved low-power state on shutdown."
+          ]
+        },
+        {
+          "id": "TSL_L2_016",
+          "address": "0x00436b90",
+          "role": "frame_render_core",
+          "size": 985,
+          "status": "classified",
+          "notes": [
+            "Core framebuffer and shader render path executed before SwapBuffers."
+          ]
+        },
+        {
+          "id": "TSL_L2_017",
+          "address": "0x00436f70",
+          "role": "window_resize_check",
+          "size": 63,
+          "status": "classified",
+          "notes": [
+            "Checks whether the client area size has changed."
+          ]
+        },
+        {
+          "id": "TSL_L2_018",
+          "address": "0x00474bb0",
+          "role": "scene_frame_end",
+          "size": 67,
+          "status": "classified",
+          "notes": [
+            "Per-frame scene finalization step."
+          ]
+        },
+        {
+          "id": "TSL_L2_019",
+          "address": "0x00474c00",
+          "role": "module_alloc",
+          "size": 133,
+          "status": "classified",
+          "notes": [
+            "Allocates a 0x434-byte module or scene descriptor."
+          ]
+        },
+        {
+          "id": "TSL_L2_020",
+          "address": "0x004752a0",
+          "role": "file_scan",
+          "size": 1099,
+          "status": "classified",
+          "notes": [
+            "Large resource and module scanning routine with multiple large stack buffers."
+          ]
+        },
+        {
+          "id": "TSL_L2_021",
+          "address": "0x004763b0",
+          "role": "module_name_parse",
+          "size": 446,
+          "status": "classified",
+          "notes": [
+            "Extracts a module or resource basename by stripping the filename extension."
+          ]
+        },
+        {
+          "id": "TSL_L2_022",
+          "address": "0x004766b0",
+          "role": "render_path_A",
+          "size": 44,
+          "status": "recovered",
+          "notes": [
+            "Alternate per-frame render path."
+          ]
+        },
+        {
+          "id": "TSL_L2_023",
+          "address": "0x004766e0",
+          "role": "render_path_B",
+          "size": 40,
+          "status": "recovered",
+          "notes": [
+            "Default per-frame render path."
+          ]
+        },
+        {
+          "id": "TSL_L2_024",
+          "address": "0x00478da0",
+          "role": "viewport_clear_color",
+          "size": 175,
+          "status": "classified",
+          "notes": [
+            "Packs RGBA float components into a cached 32-bit clear color."
+          ]
+        },
+        {
+          "id": "TSL_L2_025",
+          "address": "0x0051c470",
+          "role": "game_update_dispatch",
+          "size": 22,
+          "status": "classified",
+          "notes": [
+            "Thin dispatch thunk for per-frame game state update."
+          ]
+        },
+        {
+          "id": "TSL_L2_026",
+          "address": "0x0072e8d0",
+          "role": "cursor_idle_track",
+          "size": 235,
+          "status": "classified",
+          "notes": [
+            "Tracks cursor movement and idle time using GetCursorPos."
+          ]
+        },
+        {
+          "id": "TSL_L2_027",
+          "address": "0x00733540",
+          "role": "cstr_clear",
+          "size": 33,
+          "status": "classified",
+          "notes": [
+            "Clears a two-field string structure."
+          ]
+        },
+        {
+          "id": "TSL_L2_028",
+          "address": "0x00733570",
+          "role": "cstr_assign",
+          "size": 126,
+          "status": "classified",
+          "notes": [
+            "Allocates and copies a C string into the engine string type."
+          ]
+        },
+        {
+          "id": "TSL_L2_029",
+          "address": "0x00733780",
+          "role": "cstr_free",
+          "size": 60,
+          "status": "classified",
+          "notes": [
+            "Frees the engine string payload and clears the structure."
+          ]
+        },
+        {
+          "id": "TSL_L2_030",
+          "address": "0x00734270",
+          "role": "cstr_format",
+          "size": 380,
+          "status": "classified",
+          "notes": [
+            "Formats into a growable engine string buffer."
+          ]
+        },
+        {
+          "id": "TSL_L2_031",
+          "address": "0x00735c60",
+          "role": "object_ctor_24",
+          "size": 465,
+          "status": "classified",
+          "notes": [
+            "Allocates and initializes a 24-byte object."
+          ]
+        },
+        {
+          "id": "TSL_L2_032",
+          "address": "0x00735e40",
+          "role": "object_dtor_multi",
+          "size": 520,
+          "status": "classified",
+          "notes": [
+            "Destroys a multi-field object with several owned sub-objects."
+          ]
+        },
+        {
+          "id": "TSL_L2_033",
+          "address": "0x007360e0",
+          "role": "object_init_thiscall",
+          "size": 28,
+          "status": "classified",
+          "notes": [
+            "Thin thiscall wrapper for object initialization."
+          ]
+        },
+        {
+          "id": "TSL_L2_034",
+          "address": "0x00736220",
+          "role": "timer_query",
+          "size": 21,
+          "status": "classified",
+          "notes": [
+            "Returns a 64-bit performance timer value."
+          ]
+        },
+        {
+          "id": "TSL_L2_035",
+          "address": "0x00736240",
+          "role": "module_mgr_ctor",
+          "size": 125,
+          "status": "classified",
+          "notes": [
+            "Allocates and initializes a small module manager object."
+          ]
+        },
+        {
+          "id": "TSL_L2_036",
+          "address": "0x007362c0",
+          "role": "module_mgr_dtor",
+          "size": 87,
+          "status": "classified",
+          "notes": [
+            "Runs module manager teardown and frees the object."
+          ]
+        },
+        {
+          "id": "TSL_L2_037",
+          "address": "0x00736320",
+          "role": "module_init",
+          "size": 39,
+          "status": "classified",
+          "notes": [
+            "Primary module initialization wrapper."
+          ]
+        },
+        {
+          "id": "TSL_L2_038",
+          "address": "0x00736350",
+          "role": "module_init_alt",
+          "size": 39,
+          "status": "classified",
+          "notes": [
+            "Alternate module initialization wrapper."
+          ]
+        },
+        {
+          "id": "TSL_L2_039",
+          "address": "0x0073f050",
+          "role": "preloop_init_A",
+          "size": 22,
+          "status": "classified",
+          "notes": [
+            "Pre-main-loop initialization thunk A."
+          ]
+        },
+        {
+          "id": "TSL_L2_040",
+          "address": "0x0073f230",
+          "role": "preloop_init_B",
+          "size": 28,
+          "status": "classified",
+          "notes": [
+            "Pre-main-loop initialization thunk B."
+          ]
+        },
+        {
+          "id": "TSL_L2_041",
+          "address": "0x0073f980",
+          "role": "game_state_init",
+          "size": 22,
+          "status": "classified",
+          "notes": [
+            "Initializes game state before entering the main loop."
+          ]
+        },
+        {
+          "id": "TSL_L2_042",
+          "address": "0x0073f9c0",
+          "role": "quit_check",
+          "size": 22,
+          "status": "classified",
+          "notes": [
+            "Returns the runtime quit or exit flag."
+          ]
+        },
+        {
+          "id": "TSL_L2_043",
+          "address": "0x0073fa30",
+          "role": "shutdown_step_A",
+          "size": 22,
+          "status": "classified",
+          "notes": [
+            "First shutdown thunk after leaving the main loop."
+          ]
+        },
+        {
+          "id": "TSL_L2_044",
+          "address": "0x0073fad0",
+          "role": "audio_init",
+          "size": 44,
+          "status": "classified",
+          "notes": [
+            "Audio or sound subsystem initialization wrapper."
+          ]
+        },
+        {
+          "id": "TSL_L2_045",
+          "address": "0x0073fb20",
+          "role": "shutdown_step_B",
+          "size": 22,
+          "status": "classified",
+          "notes": [
+            "Second shutdown thunk after leaving the main loop."
+          ]
+        },
+        {
+          "id": "TSL_L2_046",
+          "address": "0x0073fe40",
+          "role": "context_enable",
+          "size": 32,
+          "status": "classified",
+          "notes": [
+            "Enables or configures a runtime context."
+          ]
+        },
+        {
+          "id": "TSL_L2_047",
+          "address": "0x00740160",
+          "role": "window_state_check",
+          "size": 22,
+          "status": "classified",
+          "notes": [
+            "Checks window state before rendering."
+          ]
+        },
+        {
+          "id": "TSL_L2_048",
+          "address": "0x00740c30",
+          "role": "indexed_param_set",
+          "size": 39,
+          "status": "classified",
+          "notes": [
+            "Sets indexed subsystem parameters during startup."
+          ]
+        },
+        {
+          "id": "TSL_L2_049",
+          "address": "0x00741090",
+          "role": "frame_end_dispatch",
+          "size": 22,
+          "status": "classified",
+          "notes": [
+            "End-of-frame dispatch thunk."
+          ]
+        },
+        {
+          "id": "TSL_L2_050",
+          "address": "0x008339d0",
+          "role": "data_stub",
+          "size": 5,
+          "status": "recovered",
+          "notes": [
+            "Short stub located in the .data range."
+          ]
+        },
+        {
+          "id": "TSL_L2_051",
+          "address": "0x00919671",
+          "role": "string_format_float",
+          "size": 125,
+          "status": "recovered",
+          "notes": [
+            "Formats a floating-point value into a string."
+          ]
+        },
+        {
+          "id": "TSL_L2_052",
+          "address": "0x009196ee",
+          "role": "shutdown_final",
+          "size": 277,
+          "status": "classified",
+          "notes": [
+            "Final teardown after the main loop and shutdown helpers complete."
+          ]
+        },
+        {
+          "id": "TSL_L2_053",
+          "address": "0x009196fd",
+          "role": "memory_free",
+          "size": 144,
+          "status": "classified",
+          "notes": [
+            "Primary custom deallocation helper used throughout startup and runtime."
+          ]
+        },
+        {
+          "id": "TSL_L2_054",
+          "address": "0x00919723",
+          "role": "memory_alloc",
+          "size": 101,
+          "status": "classified",
+          "notes": [
+            "Primary custom allocation helper used throughout startup and runtime."
+          ]
+        },
+        {
+          "id": "TSL_L2_055",
+          "address": "0x0091c630",
+          "role": "memset_zero",
+          "size": 265,
+          "status": "classified",
+          "notes": [
+            "Zero-fills memory for structure initialization."
+          ]
+        },
+        {
+          "id": "TSL_L2_056",
+          "address": "0x0091c860",
+          "role": "timer_gettime",
+          "size": 145,
+          "status": "recovered",
+          "notes": [
+            "Returns the current timer value used in frame timing."
+          ]
+        },
+        {
+          "id": "TSL_L2_057",
+          "address": "0x0091cb24",
+          "role": "frame_step",
+          "size": 221,
+          "status": "classified",
+          "notes": [
+            "Central per-frame update step used inside the inner tick loop."
+          ]
+        },
+        {
+          "id": "TSL_L2_058",
+          "address": "0x0091cf18",
+          "role": "object_lookup",
+          "size": 33,
+          "status": "classified",
+          "notes": [
+            "Thin object handle lookup wrapper with a fixed timeout argument."
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_17",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_StartupBody",
+          "kind": "jump"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_01",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_02",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_03",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_04",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_05",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_06",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_07",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_08",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_09",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_10",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_11",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_12",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_13",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_14",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_15",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_PEEntryPoint",
+          "to": "TSL_Startup_16",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_StartupBody",
+          "to": "TSL_Startup_13",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_001",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_002",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_003",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_004",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_Bootstrap_01",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_Bootstrap_02",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_Bootstrap_03",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_Bootstrap_05",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_008",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_Bootstrap_04",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_Bootstrap_06",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_012",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_013",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_014",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_015",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_016",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_017",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_018",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_019",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_020",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_021",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_022",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_023",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_024",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_025",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_026",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_027",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_028",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_029",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_030",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_031",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_032",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_033",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_034",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_035",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_036",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_037",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_038",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_039",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_040",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_041",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_042",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_043",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_044",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_045",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_046",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_047",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_048",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_049",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_050",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_051",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_052",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_053",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_054",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_055",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_056",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_057",
+          "kind": "call"
+        },
+        {
+          "from": "TSL_Startup_13",
+          "to": "TSL_L2_058",
+          "kind": "call"
+        }
+      ]
+    }
+  ]
+}

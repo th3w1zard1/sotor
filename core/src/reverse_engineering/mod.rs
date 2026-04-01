@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 const K1_TSL_IMPORT_MAP_JSON: &str =
     include_str!("../../assets/reverse_engineering/k1_tsl_import_map.json");
+const STARTUP_FRONTIER_MAP_JSON: &str =
+    include_str!("../../assets/reverse_engineering/startup_frontier_map.json");
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -79,6 +81,42 @@ pub struct ImportMappingCounts {
     pub tsl_only: usize,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct StartupFrontierMap {
+    pub generated_at: String,
+    pub source: String,
+    pub note: String,
+    pub graphs: Vec<StartupGraph>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct StartupGraph {
+    pub version: String,
+    #[serde(default)]
+    pub notes: Vec<String>,
+    pub nodes: Vec<StartupNode>,
+    pub edges: Vec<StartupEdge>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct StartupNode {
+    pub id: String,
+    pub address: String,
+    pub role: String,
+    pub size: Option<u64>,
+    pub status: String,
+    pub notes: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct StartupEdge {
+    pub from: String,
+    pub to: String,
+    pub kind: String,
+}
+
 impl CrossBinaryMap {
     pub fn shared_import(&self, symbol: &str) -> Option<&SharedImportMapping> {
         self.imports.shared.iter().find(|item| item.symbol == symbol)
@@ -98,9 +136,26 @@ pub fn load_embedded_k1_tsl_import_map() -> SResult<CrossBinaryMap> {
         .map_err(|err| format!("load_embedded_k1_tsl_import_map| {err}"))
 }
 
+impl StartupFrontierMap {
+    pub fn graph(&self, version: &str) -> Option<&StartupGraph> {
+        self.graphs.iter().find(|graph| graph.version == version)
+    }
+}
+
+impl StartupGraph {
+    pub fn node(&self, id: &str) -> Option<&StartupNode> {
+        self.nodes.iter().find(|node| node.id == id)
+    }
+}
+
+pub fn load_embedded_startup_frontier_map() -> SResult<StartupFrontierMap> {
+    serde_json::from_str(STARTUP_FRONTIER_MAP_JSON)
+        .map_err(|err| format!("load_embedded_startup_frontier_map| {err}"))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::load_embedded_k1_tsl_import_map;
+    use super::{load_embedded_k1_tsl_import_map, load_embedded_startup_frontier_map};
 
     #[test]
     fn bundled_import_map_parses() {
@@ -145,5 +200,65 @@ mod tests {
         assert_eq!(entry.k1.as_deref(), Some("0x0086d2ed"));
         assert_eq!(entry.tsl.as_deref(), Some("0x0091d5a2"));
         assert_eq!(entry.status, "recovered");
+    }
+
+    #[test]
+    fn bundled_startup_frontier_map_parses() {
+        let frontier = load_embedded_startup_frontier_map().expect("startup frontier map should parse");
+
+        assert_eq!(frontier.graphs.len(), 2);
+        assert!(frontier.graph("K1").is_some());
+        assert!(frontier.graph("TSL").is_some());
+    }
+
+    #[test]
+    fn bundled_startup_frontier_contains_expected_entry_nodes() {
+        let frontier = load_embedded_startup_frontier_map().expect("startup frontier map should parse");
+        let k1 = frontier.graph("K1").expect("K1 graph should exist");
+        let tsl = frontier.graph("TSL").expect("TSL graph should exist");
+
+        assert_eq!(k1.node("K1_PEEntryPoint").map(|node| node.address.as_str()), Some("0x0086d2ed"));
+        assert_eq!(tsl.node("TSL_PEEntryPoint").map(|node| node.address.as_str()), Some("0x0091d5a2"));
+    }
+
+    #[test]
+    fn bundled_startup_frontier_contains_graph_notes() {
+        let frontier = load_embedded_startup_frontier_map().expect("startup frontier map should parse");
+        let k1 = frontier.graph("K1").expect("K1 graph should exist");
+        let tsl = frontier.graph("TSL").expect("TSL graph should exist");
+
+        assert!(!k1.notes.is_empty());
+        assert!(!tsl.notes.is_empty());
+    }
+
+    #[test]
+    fn bundled_startup_frontier_contains_complete_tsl_level2_frontier() {
+        let frontier = load_embedded_startup_frontier_map().expect("startup frontier map should parse");
+        let tsl = frontier.graph("TSL").expect("TSL graph should exist");
+
+        assert_eq!(tsl.nodes.len(), 77);
+        assert_eq!(tsl.edges.len(), 77);
+        assert_eq!(
+            tsl.node("TSL_Bootstrap_02").map(|node| node.role.as_str()),
+            Some("steam_init_check")
+        );
+        assert_eq!(
+            tsl.node("TSL_L2_058").map(|node| node.address.as_str()),
+            Some("0x0091cf18")
+        );
+    }
+
+    #[test]
+    fn bundled_startup_frontier_reflects_k1_loader_stub_classification() {
+        let frontier = load_embedded_startup_frontier_map().expect("startup frontier map should parse");
+        let k1 = frontier.graph("K1").expect("K1 graph should exist");
+        let entry = k1
+            .node("K1_PEEntryPoint")
+            .expect("K1 PE entry node should exist");
+
+        assert_eq!(k1.nodes.len(), 4);
+        assert_eq!(k1.edges.len(), 3);
+        assert_eq!(entry.role, "pe_entry_loader_stub");
+        assert_eq!(entry.size, Some(7958));
     }
 }
